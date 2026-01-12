@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// USERS
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  profileImage String?
+  bio          String?
+  rating       Float    @default(0)
+  ratingCount  Int      @default(0)
+  tradesCount  Int      @default(0)
+  isVerified   Boolean  @default(false)
+
+  listings     Listing[]
+  offersMade   Offer[]  @relation("OffersByBuyer")
+}
+
+// LISTINGS
+model Listing {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  price       Float
+  condition   String?
+  createdAt   DateTime  @default(now())
+
+  // keep a primary image for quick access
+  imageData   String?
+
+  sellerId    Int
+  seller      User      @relation(fields: [sellerId], references: [id])
+
+  offers      Offer[]
+  images      ListingImage[]
+}
+
+// EXTRA IMAGES (1-N, avoids String[] on SQLite)
+model ListingImage {
+  id        Int      @id @default(autoincrement())
+  data      String   // base64
+  order     Int      @default(0)
+  listingId Int
+  listing   Listing  @relation(fields: [listingId], references: [id])
+}
+
+// OFFERS
+model Offer {
+  id        Int       @id @default(autoincrement())
+  amount    Float
+  createdAt DateTime  @default(now())
+  status    String    @default("pending")
+
+  listingId Int
+  listing   Listing   @relation(fields: [listingId], references: [id])
+
+  buyerId   Int
+  buyer     User      @relation("OffersByBuyer", fields: [buyerId], references: [id])
+}
